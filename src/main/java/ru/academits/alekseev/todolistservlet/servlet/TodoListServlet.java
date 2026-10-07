@@ -41,16 +41,24 @@ public class TodoListServlet extends HttpServlet {
         session.removeAttribute("saveError");
         session.removeAttribute("saveErrorId");
 
+        String idError = (String) session.getAttribute("idError");
+        String idErrorHtml = "";
+
+        if (idError != null) {
+            idErrorHtml = "<div style=\"color: red\">" + StringEscapeUtils.escapeHtml4(idError) + "</div>";
+        }
+
+        session.removeAttribute("idError");
+
         TodoItemRepository todoItemRepository = new TodoItemInMemoryRepository();
         List<TodoItem> todoItems = todoItemRepository.getAll();
 
         String baseUrl = req.getContextPath() + "/";
 
         StringBuilder todoItemsHtml = new StringBuilder();
-        String saveErrorHtml;
 
         for (TodoItem todoItem : todoItems) {
-            saveErrorHtml = "";
+            String saveErrorHtml = "";
 
             if (saveError != null && saveErrorId != null && saveErrorId.equals(todoItem.getId())) {
                 saveErrorHtml = "<div style=\"color: red\">" + StringEscapeUtils.escapeHtml4(saveError) + "</div>";
@@ -81,6 +89,8 @@ public class TodoListServlet extends HttpServlet {
                 <body>
                     <h1>TODO List</h1>
                 
+                    %s
+                
                     <form method="post" action="%s">
                         <input type="hidden" name="action" value="create">
                 
@@ -95,7 +105,7 @@ public class TodoListServlet extends HttpServlet {
                     </ul>
                 </body>
                 </html>
-                """.formatted(baseUrl, createErrorHtml, todoItemsHtml.toString()));
+                """.formatted(idErrorHtml, baseUrl, createErrorHtml, todoItemsHtml.toString()));
     }
 
     @Override
@@ -116,27 +126,48 @@ public class TodoListServlet extends HttpServlet {
             }
 
             case "save" -> {
-                String todoItemText = req.getParameter("todoItemText");
-                int todoItemId = Integer.parseInt(req.getParameter("todoItemId"));
-
-                if (todoItemText == null || todoItemText.isBlank()) {
+                try {
+                    String todoItemText = req.getParameter("todoItemText");
+                    String todoItemIdParameter = req.getParameter("todoItemId");
                     HttpSession session = req.getSession();
-                    session.setAttribute("saveError", "Text must not be empty");
-                    session.setAttribute("saveErrorId", todoItemId);
-                } else {
-                    int id = Integer.parseInt(req.getParameter("todoItemId"));
-                    TodoItem todoItem = new TodoItem(id, todoItemText.trim());
 
-                    TodoItemRepository todoItemRepository = new TodoItemInMemoryRepository();
-                    todoItemRepository.update(todoItem);
+                    if (todoItemIdParameter == null || todoItemIdParameter.isBlank()) {
+                        session.setAttribute("idError", "Item id must not be empty");
+                    } else if (todoItemText == null || todoItemText.isBlank()) {
+                        int todoItemId = Integer.parseInt(todoItemIdParameter);
+
+                        session.setAttribute("saveError", "Text must not be empty");
+                        session.setAttribute("saveErrorId", todoItemId);
+                    } else {
+                        int todoItemId = Integer.parseInt(todoItemIdParameter);
+
+                        TodoItem todoItem = new TodoItem(todoItemId, todoItemText.trim());
+                        TodoItemRepository todoItemRepository = new TodoItemInMemoryRepository();
+                        todoItemRepository.update(todoItem);
+                    }
+                } catch (NumberFormatException e) {
+                    HttpSession session = req.getSession();
+                    session.setAttribute("idError", "Item id must be a number");
                 }
             }
 
             case "delete" -> {
-                int todoItemId = Integer.parseInt(req.getParameter("todoItemId"));
+                try {
+                    String todoItemIdParameter = req.getParameter("todoItemId");
 
-                TodoItemRepository todoItemRepository = new TodoItemInMemoryRepository();
-                todoItemRepository.delete(todoItemId);
+                    if (todoItemIdParameter == null || todoItemIdParameter.isBlank()) {
+                        HttpSession session = req.getSession();
+                        session.setAttribute("idError", "Item id must not be empty");
+                    } else {
+                        int todoItemId = Integer.parseInt(todoItemIdParameter);
+
+                        TodoItemRepository todoItemRepository = new TodoItemInMemoryRepository();
+                        todoItemRepository.delete(todoItemId);
+                    }
+                } catch (NumberFormatException e) {
+                    HttpSession session = req.getSession();
+                    session.setAttribute("idError", "Item id must be a number");
+                }
             }
         }
 
