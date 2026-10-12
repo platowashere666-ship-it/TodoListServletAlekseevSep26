@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import org.apache.commons.text.StringEscapeUtils;
+
 import ru.academits.alekseev.todolistservlet.data.TodoItem;
 import ru.academits.alekseev.todolistservlet.data.TodoItemInMemoryRepository;
 import ru.academits.alekseev.todolistservlet.data.TodoItemRepository;
@@ -27,85 +27,26 @@ public class TodoListServlet extends HttpServlet {
         HttpSession session = req.getSession();
 
         String createError = (String) session.getAttribute("createError");
-        String createErrorHtml = "";
-
-        if (createError != null) {
-            createErrorHtml = "<div style=\"color: red;\">" + StringEscapeUtils.escapeHtml4(createError) + "</div>";
-        }
-
         session.removeAttribute("createError");
+        req.setAttribute("createError", createError);
 
         String saveError = (String) session.getAttribute("saveError");
-        Integer saveErrorId = (Integer) session.getAttribute("saveErrorId");
-
         session.removeAttribute("saveError");
+        req.setAttribute("saveError", saveError);
+
+        Integer saveErrorId = (Integer) session.getAttribute("saveErrorId");
         session.removeAttribute("saveErrorId");
+        req.setAttribute("saveErrorId", saveErrorId);
 
         String idError = (String) session.getAttribute("idError");
-        String idErrorHtml = "";
-
-        if (idError != null) {
-            idErrorHtml = "<div style=\"color: red\">" + StringEscapeUtils.escapeHtml4(idError) + "</div>";
-        }
-
         session.removeAttribute("idError");
+        req.setAttribute("idError", idError);
 
         TodoItemRepository todoItemRepository = new TodoItemInMemoryRepository();
         List<TodoItem> todoItems = todoItemRepository.getAll();
+        req.setAttribute("items", todoItems);
 
-        String baseUrl = req.getContextPath() + "/";
-
-        StringBuilder todoItemsHtml = new StringBuilder();
-
-        for (TodoItem todoItem : todoItems) {
-            String saveErrorHtml = "";
-
-            if (saveError != null && saveErrorId != null && saveErrorId.equals(todoItem.getId())) {
-                saveErrorHtml = "<div style=\"color: red\">" + StringEscapeUtils.escapeHtml4(saveError) + "</div>";
-            }
-
-            todoItemsHtml.append("""
-                    <li>
-                        <form method="post" action="%s">
-                            <input type="hidden" name="todoItemId" value="%s">
-                    
-                            <input type="text" name="todoItemText" value="%s">
-                            <button type="submit" name="action" value="save">Save</button>
-                            <button type="submit" name="action" value="delete">Delete</button>
-                            %s
-                        </form>
-                    </li>
-                    """.formatted(baseUrl, todoItem.getId(),
-                    StringEscapeUtils.escapeHtml4(todoItem.getText()), saveErrorHtml));
-        }
-
-        resp.getWriter().println("""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>TODO List</title>
-                    <meta charset="UTF-8">
-                </head>
-                <body>
-                    <h1>TODO List</h1>
-                
-                    %s
-                
-                    <form method="post" action="%s">
-                        <input type="hidden" name="action" value="create">
-                
-                        <label>Enter text:</label>
-                        <input type="text" name="todoItemText">
-                        <button type="submit">Create</button>
-                        %s
-                    </form>
-                
-                    <ul>
-                        %s
-                    </ul>
-                </body>
-                </html>
-                """.formatted(idErrorHtml, baseUrl, createErrorHtml, todoItemsHtml.toString()));
+        req.getRequestDispatcher("/todo.jsp").forward(req, resp);
     }
 
     @Override
