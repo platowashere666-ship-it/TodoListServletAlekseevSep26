@@ -89,6 +89,9 @@ public class TodoListServlet extends HttpServlet {
                 } catch (NumberFormatException e) {
                     HttpSession session = req.getSession();
                     session.setAttribute("idError", "Item id must be a number");
+                } catch (IllegalArgumentException e) {
+                    HttpSession session = req.getSession();
+                    session.setAttribute("saveError", e.getMessage());
                 }
             }
 
