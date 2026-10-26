@@ -46,7 +46,7 @@ public class TodoListServlet extends HttpServlet {
         List<TodoItem> todoItems = todoItemRepository.getAll();
         req.setAttribute("items", todoItems);
 
-        req.getRequestDispatcher("/todo.jsp").forward(req, resp);
+        req.getRequestDispatcher("WEB-INF/view/todo.jsp").forward(req, resp);
     }
 
     @Override

@@ -11,7 +11,7 @@ public class TodoItemInMemoryRepository implements TodoItemRepository {
     @Override
     public List<TodoItem> getAll() {
         synchronized (todoItems) {
-            return todoItems;
+            return new ArrayList<>(todoItems);
         }
     }
 
